@@ -1,0 +1,68 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+# Bare minimum Deployment Configs
+  - kind: "DeploymentConfig"
+    apiVersion: v1
+    metadata:
+      name: "${DEPLOYMENT_NAME}"
+    spec:
+      template: 
+        metadata:
+          labels:
+            app: ${DEPLOYMENT_NAME}
+            deploymentconfig: ${DEPLOYMENT_NAME}
+            name: "${DEPLOYMENT_NAME}"
+        spec:
+          restartPolicy: Always
+          containers:
+             - env:
+               name: "${DEPLOYMENT_NAME}"
+               image: "${IMAGE}"             
+      replicas: 1
+      selector:
+        name: "${DEPLOYMENT_NAME}"
+        app: "${DEPLOYMENT_NAME}"
+        deploymentconfig: "${DEPLOYMENT_NAME}"
+      triggers:
+        - type: "ConfigChange" 
+      strategy:
+        resources: 
+          limits:
+            cpu: "1"
+            memory: "512Mi"
+          requests:
+            cpu: "0.1"
+            memory: "128Mi"
+        rollingParams:
+          intervalSeconds: 1
+          maxSurge: 25%
+          maxUnavailable: 25%
+          timeoutSeconds: 600
+          updatePeriodSeconds: 1
+        type: Rolling
+# Service setup
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      annotations:
+      labels:
+        app: "${DEPLOYMENT_NAME}"
+      name: "${DEPLOYMENT_NAME}"
+    spec:
+      ports:
+        - name: 8000-tcp
+          port: 8000
+          protocol: TCP
+          targetPort: 8000
+      selector:
+        deploymentconfig: "${DEPLOYMENT_NAME}"
+parameters:
+  - name: DEPLOYMENT_NAME 
+    displayName: Deployemnt Name 
+    description: Deployemnt Name 
+    required: true 
+  - name: IMAGE
+    type: string
+    description: Name of the image to be deployed
+
